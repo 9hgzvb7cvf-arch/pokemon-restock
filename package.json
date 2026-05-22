@@ -1,0 +1,22 @@
+{
+  "name": "pokemon-tcg-restock-monitor",
+  "version": "1.0.0",
+  "description": "Monitors Pokemon TCG product listings on Target, Walmart, and Best Buy for new releases",
+  "main": "monitor.js",
+  "scripts": {
+    "start": "node monitor.js",
+    "dev": "node monitor.js --once",
+    "cron": "node -e \"require('node-cron').schedule(require('./config').checkInterval, () => require('./monitor').run());\"",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "axios": "^1.7.9",
+    "cheerio": "^1.0.0",
+    "dotenv": "^16.4.7",
+    "node-cron": "^3.0.3",
+    "nodemailer": "^6.9.16"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

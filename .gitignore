@@ -1,0 +1,8 @@
+node_modules/
+.env
+*.log
+*.tmp
+.DS_Store
+
+# data files are committed by GitHub Actions to persist state between runs
+# data/products.json and data/msrp-database.json are intentionally tracked
