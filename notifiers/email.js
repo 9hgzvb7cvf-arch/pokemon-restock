@@ -27,9 +27,13 @@ const config     = require('../config');
 const MAX_RETRIES = 2;
 
 const RETAILER_HEX = {
-  target:  '#cc0000',
-  walmart: '#0071ce',
-  bestbuy: '#ffe000',
+  target:         '#cc0000',
+  walmart:        '#0071ce',
+  bestbuy:        '#ffe000',
+  amazon:         '#ff9900',
+  gamestop:       '#e31837',
+  barnesandnoble: '#1d6b3d',
+  pokemoncenter:  '#ff0000',
 };
 
 // ── Transporter (lazy singleton) ──────────────────────────────────────────────
@@ -260,10 +264,103 @@ async function sendEmailNotification(products) {
   }
 }
 
+// ── Queue alert email ─────────────────────────────────────────────────────────
+
+function buildQueueAlertHtml(queueEvent) {
+  const { queueUrl, position, waitTime, products: watchedProducts, detectedAt } = queueEvent;
+  const nowStr = new Date(detectedAt ?? Date.now()).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+
+  const posLine  = position != null ? `<li><strong>Queue Position:</strong> ${esc(String(position))}</li>` : '';
+  const waitLine = waitTime  ? `<li><strong>Est. Wait:</strong> ${esc(waitTime)}</li>` : '';
+  const prodList = watchedProducts?.length
+    ? `<p style="margin:12px 0 4px;font-weight:bold">Likely products:</p><ul style="margin:0;padding-left:20px">${watchedProducts.map(p => `<li>${esc(p)}</li>`).join('')}</ul>`
+    : '';
+
+  const btnHref = queueUrl || 'https://www.pokemoncenter.com/';
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>QUEUE LIVE — Pokemon Center</title>
+</head>
+<body style="margin:0;padding:0;background:#f4f4f4;font-family:Arial,Helvetica,sans-serif">
+  <div style="max-width:640px;margin:24px auto;background:#f4f4f4">
+    <!-- Red alert banner -->
+    <div style="background:#cc0000;padding:28px 32px;border-radius:8px 8px 0 0;text-align:center">
+      <div style="font-size:28px;font-weight:bold;color:#fff;letter-spacing:1px">🚨 QUEUE IS LIVE</div>
+      <div style="font-size:15px;color:#ffcccc;margin-top:6px">Pokemon Center Restock &mdash; ${esc(nowStr)}</div>
+    </div>
+    <!-- Body -->
+    <div style="background:#fff;padding:24px 32px;border-radius:0 0 8px 8px;border:1px solid #e0e0e0;border-top:none">
+      <p style="font-size:15px;margin:0 0 16px">A restock queue has been detected at Pokemon Center. These sell out in minutes &mdash; join now.</p>
+      <ul style="font-size:14px;line-height:1.8;margin:0 0 16px;padding-left:20px">
+        ${posLine}${waitLine}
+      </ul>
+      ${prodList}
+      <div style="margin-top:24px;text-align:center">
+        <a href="${esc(btnHref)}"
+           style="display:inline-block;background:#cc0000;color:#fff;padding:14px 36px;border-radius:6px;text-decoration:none;font-size:16px;font-weight:bold;letter-spacing:0.5px">
+          Join Queue Now →
+        </a>
+      </div>
+      <div style="margin-top:32px;padding-top:16px;border-top:1px solid #eee;font-size:12px;color:#aaa;text-align:center">
+        Sent by Pokemon TCG Restock Monitor &mdash; act quickly, availability is extremely limited.
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
+/**
+ * Send an urgent queue-alert email bypassing the normal product email flow.
+ *
+ * @param {object} queueEvent  QueueEvent from scrapePokemonCenter()
+ * @returns {Promise<{ sent: boolean, error: string|null }>}
+ */
+async function sendQueueAlertEmail(queueEvent) {
+  if (!config.email.enabled) {
+    console.log('[Email] Disabled — skipping queue alert email.');
+    return { sent: false, error: null };
+  }
+
+  let transporter;
+  try {
+    transporter = await getTransporter();
+  } catch (err) {
+    console.error(err.message);
+    return { sent: false, error: err.message };
+  }
+
+  const html = buildQueueAlertHtml(queueEvent);
+
+  try {
+    const info = await sendMail(transporter, {
+      from:    config.email.from,
+      to:      config.email.to,
+      subject: '🚨 QUEUE LIVE: Pokemon Center restock in progress!',
+      html,
+    });
+    console.log(`[Email] Queue alert sent to ${config.email.to} (messageId: ${info.messageId})`);
+    return { sent: true, error: null };
+  } catch (err) {
+    if (isAuthError(err)) {
+      const msg = `[Email] Authentication failed — check SMTP_USER and SMTP_PASS. ${err.message}`;
+      console.error(msg);
+      _transporter = null;
+      return { sent: false, error: msg };
+    }
+    console.error(`[Email] Queue alert failed: ${err.message}`);
+    return { sent: false, error: err.message };
+  }
+}
+
 // ── Utilities ─────────────────────────────────────────────────────────────────
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-module.exports = { sendEmailNotification, buildHtml };
+module.exports = { sendEmailNotification, sendQueueAlertEmail, buildHtml, buildQueueAlertHtml };

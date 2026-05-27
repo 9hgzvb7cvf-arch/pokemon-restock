@@ -107,6 +107,45 @@ async function notify(products, channels) {
   return out;
 }
 
+// ── Critical alert (queue events) ─────────────────────────────────────────────
+
+/**
+ * Fire an immediate critical notification for a Pokemon Center queue event.
+ * Bypasses NOTIFY_CHANNELS filtering — fires to every channel that has credentials,
+ * because a live queue is time-sensitive and should reach all configured outputs.
+ *
+ * @param {object} queueEvent  QueueEvent from scrapePokemonCenter()
+ * @returns {Promise<Object.<string, any>>}
+ */
+async function notifyCritical(queueEvent) {
+  console.log('[Notifier] CRITICAL: dispatching queue alert to all configured channels.');
+
+  const tasks = [];
+
+  if (config.discord.webhookUrl) {
+    tasks.push(
+      discord.sendQueueAlert(queueEvent)
+        .then(r => ({ key: 'discord', result: r }))
+        .catch(err => ({ key: 'discord', result: { sent: false, error: err.message } })),
+    );
+  }
+
+  if (config.email.enabled && config.email.smtp?.auth?.user) {
+    tasks.push(
+      email.sendQueueAlertEmail(queueEvent)
+        .then(r => ({ key: 'email', result: r }))
+        .catch(err => ({ key: 'email', result: { sent: false, error: err.message } })),
+    );
+  }
+
+  const settled = await Promise.allSettled(tasks);
+  const out = {};
+  for (const s of settled) {
+    if (s.status === 'fulfilled') out[s.value.key] = s.value.result;
+  }
+  return out;
+}
+
 // ── Test helper ───────────────────────────────────────────────────────────────
 
 const TEST_PRODUCTS = [
@@ -222,4 +261,4 @@ if (require.main === module) {
   console.log('');
 }
 
-module.exports = { notify, test };
+module.exports = { notify, notifyCritical, test };

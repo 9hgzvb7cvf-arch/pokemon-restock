@@ -1,0 +1,74 @@
+{
+  "version": 2,
+  "lastSaved": "2026-05-22T20:05:15.012Z",
+  "target": {
+    "target-1001": {
+      "id": "target-1001",
+      "retailer": "target",
+      "name": "Pokemon TCG: Twilight Masquerade Elite Trainer Box",
+      "price": "$49.99",
+      "priceNumeric": 49.99,
+      "url": "https://t.co/1001",
+      "inStock": true,
+      "stockStatus": "in_stock",
+      "firstSeen": "2026-05-22T20:05:15.008Z",
+      "lastSeen": "2026-05-22T20:05:15.012Z",
+      "lastStockStatus": "in_stock"
+    },
+    "target-1002": {
+      "id": "target-1002",
+      "retailer": "target",
+      "name": "Pokemon TCG: Stellar Crown Booster Pack",
+      "price": "$14.99",
+      "priceNumeric": 14.99,
+      "url": "https://t.co/1002",
+      "inStock": true,
+      "stockStatus": "in_stock",
+      "firstSeen": "2026-05-22T20:05:15.008Z",
+      "lastSeen": "2026-05-22T20:05:15.012Z",
+      "lastStockStatus": "in_stock"
+    },
+    "target-1003": {
+      "id": "target-1003",
+      "retailer": "target",
+      "name": "Pokemon TCG: Prismatic Evolutions Booster Bundle",
+      "price": "$19.99",
+      "priceNumeric": 19.99,
+      "url": "https://t.co/1003",
+      "inStock": true,
+      "stockStatus": "in_stock",
+      "firstSeen": "2026-05-22T20:05:15.010Z",
+      "lastSeen": "2026-05-22T20:05:15.012Z",
+      "lastStockStatus": "in_stock"
+    },
+    "target-1004": {
+      "id": "target-1004",
+      "retailer": "target",
+      "name": "Pokemon TCG: Paradox Rift Booster Pack",
+      "price": "$4.99",
+      "priceNumeric": 4.99,
+      "url": "https://t.co/1004",
+      "inStock": true,
+      "stockStatus": "in_stock",
+      "firstSeen": "2026-05-22T20:05:15.010Z",
+      "lastSeen": "2026-05-22T20:05:15.012Z",
+      "lastStockStatus": "in_stock"
+    }
+  },
+  "walmart": {
+    "walmart-2001": {
+      "id": "walmart-2001",
+      "retailer": "walmart",
+      "name": "Pokemon TCG: Surging Sparks Elite Trainer Box",
+      "price": "$49.99",
+      "priceNumeric": 49.99,
+      "url": "https://wm.co/2001",
+      "inStock": true,
+      "stockStatus": "in_stock",
+      "firstSeen": "2026-05-22T20:05:15.011Z",
+      "lastSeen": "2026-05-22T20:05:15.012Z",
+      "lastStockStatus": "in_stock"
+    }
+  },
+  "bestbuy": {}
+}

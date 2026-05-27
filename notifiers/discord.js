@@ -226,6 +226,68 @@ async function sendDiscordNotification(products) {
   return { sent, failed };
 }
 
+// ── Queue alert ───────────────────────────────────────────────────────────────
+
+/**
+ * Send an immediate CRITICAL alert when a Pokemon Center queue is detected live.
+ *
+ * @param {object} queueEvent  QueueEvent object from scrapePokemonCenter()
+ * @returns {Promise<{ sent: boolean, error: string|null }>}
+ */
+async function sendQueueAlert(queueEvent) {
+  const webhookUrl = config.discord.webhookUrl;
+  if (!webhookUrl) {
+    console.warn('[Discord] No DISCORD_WEBHOOK_URL set — skipping queue alert.');
+    return { sent: false, error: null };
+  }
+
+  const { queueUrl, position, waitTime, products: watchedProducts, detectedAt, detectionMethod } = queueEvent;
+
+  const fields = [];
+
+  if (position != null) {
+    fields.push({ name: 'Queue Position', value: String(position), inline: true });
+  }
+  if (waitTime) {
+    fields.push({ name: 'Est. Wait',      value: waitTime,         inline: true });
+  }
+  fields.push({ name: 'Detected via', value: detectionMethod ?? 'unknown', inline: true });
+
+  if (watchedProducts?.length) {
+    fields.push({ name: 'Likely Products', value: watchedProducts.slice(0, 5).join('\n'), inline: false });
+  }
+
+  fields.push({
+    name:   'Queue Link',
+    value:  queueUrl ? `[Join Queue](${queueUrl})` : 'Check pokemoncenter.com',
+    inline: false,
+  });
+
+  const embed = {
+    title:       '🚨 POKEMON CENTER QUEUE IS LIVE',
+    description: 'A restock queue has been detected. Act fast — these sell out in minutes.',
+    color:       0xff0000,
+    fields,
+    timestamp:   detectedAt ?? new Date().toISOString(),
+    footer:      { text: 'Pokemon TCG Monitor · Queue Alert' },
+  };
+
+  const mentionEveryone = config.retailers?.pokemoncenter?.mentionEveryone ?? false;
+
+  const payload = {
+    username: 'Pokemon TCG Monitor',
+    content:  mentionEveryone ? '@here 🚨 **POKEMON CENTER QUEUE IS LIVE!**' : '🚨 **POKEMON CENTER QUEUE IS LIVE!**',
+    embeds:   [embed],
+  };
+
+  const ok = await postWebhook(webhookUrl, payload);
+  if (ok) {
+    console.log('[Discord] Queue alert sent.');
+    return { sent: true, error: null };
+  }
+  return { sent: false, error: 'postWebhook returned false' };
+}
+
 // ── Utilities ─────────────────────────────────────────────────────────────────
 
 function chunk(arr, size) {
@@ -242,4 +304,4 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-module.exports = { sendDiscordNotification, buildEmbed, buildMsrpField };
+module.exports = { sendDiscordNotification, sendQueueAlert, buildEmbed, buildMsrpField };

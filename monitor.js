@@ -27,15 +27,16 @@ const config = require('./config');
 
 // Kept as module references (not destructured) so tests can stub individual
 // functions without re-requiring the whole module.
-const targetScraper  = require('./scrapers/target');
-const walmartScraper = require('./scrapers/walmart');
-const bestbuyScraper = require('./scrapers/bestbuy');
-const amazonScraper  = require('./scrapers/amazon');
+const targetScraper   = require('./scrapers/target');
+const walmartScraper  = require('./scrapers/walmart');
+const bestbuyScraper  = require('./scrapers/bestbuy');
+const amazonScraper   = require('./scrapers/amazon');
 const gamestopScraper = require('./scrapers/gamestop');
-const bnScraper      = require('./scrapers/barnesandnoble');
-const notifierMod    = require('./notifier');
-const msrpMod        = require('./msrpChecker');
-const stateMod       = require('./stateManager');
+const bnScraper       = require('./scrapers/barnesandnoble');
+const pcScraper       = require('./scrapers/pokemoncenter');
+const notifierMod     = require('./notifier');
+const msrpMod         = require('./msrpChecker');
+const stateMod        = require('./stateManager');
 
 // ── Logging ───────────────────────────────────────────────────────────────────
 
@@ -80,6 +81,61 @@ const SCRAPERS = [
   { key: 'gamestop',        name: 'GameStop',        fn: () => gamestopScraper.scrapeGameStop(),       cfg: () => config.retailers.gamestop        },
   { key: 'barnesandnoble',  name: 'Barnes & Noble',  fn: () => bnScraper.scrapeBarnesAndNoble(),       cfg: () => config.retailers.barnesandnoble  },
 ];
+
+// ── Phase 0: Pokemon Center queue check ──────────────────────────────────────
+
+/**
+ * Check Pokemon Center for an active Queue-it queue.
+ * Fires a CRITICAL notification immediately if a new queue is detected.
+ * Skipped when PC_ENABLED=false or in dry-run mode.
+ */
+async function checkPokemonCenterQueue(phaseNum, totalPhases, isDryRun) {
+  if (!config.retailers.pokemoncenter?.enabled) {
+    log.phase(phaseNum, totalPhases, 'Pokemon Center queue check  [DISABLED — set PC_ENABLED=true to enable]');
+    return;
+  }
+
+  log.phase(phaseNum, totalPhases, 'Pokemon Center queue check');
+  const t0 = Date.now();
+
+  let result;
+  try {
+    result = await pcScraper.scrapePokemonCenter();
+  } catch (err) {
+    log.warn(`Queue check failed — ${err.message}`);
+    return;
+  }
+
+  const { queueEvent, isNewQueue, products } = result;
+
+  if (!queueEvent) {
+    log.info(`No active queue detected  (${elapsed(t0)})`);
+  } else {
+    const pos  = queueEvent.position != null ? ` · position ${queueEvent.position}` : '';
+    const wait = queueEvent.waitTime  ? ` · wait ${queueEvent.waitTime}`             : '';
+    log.warn(`QUEUE DETECTED${pos}${wait}  (${elapsed(t0)})`);
+
+    if (isNewQueue) {
+      if (isDryRun) {
+        log.info('Would send CRITICAL queue alert — suppressed by --test flag');
+      } else {
+        log.info('Sending CRITICAL queue alert to all channels…');
+        const alertResults = await notifierMod.notifyCritical(queueEvent);
+        for (const [channel, r] of Object.entries(alertResults)) {
+          if (r?.error)        log.error(`${channel}: ${r.error}`);
+          else if (r?.sent === false) log.warn(`${channel}: not sent (check credentials)`);
+          else                 log.ok(`${channel}: queue alert sent`);
+        }
+      }
+    } else {
+      log.info('Queue already known from previous run — no duplicate alert sent');
+    }
+  }
+
+  if (products?.length) {
+    log.info(`PC catalog: ${products.length} product(s) scraped from Pokemon Center`);
+  }
+}
 
 // ── Phase 1: MSRP refresh ─────────────────────────────────────────────────────
 
@@ -303,33 +359,36 @@ async function run({ isDryRun = false, forceInit = false } = {}) {
   log.divider();
 
   // ── Phase counts depend on mode ───────────────────────────────────────────
-  // Init:       [1] MSRP  [2] Scrape  [3] Baseline
-  // Normal:     [1] MSRP  [2] Scrape  [3] Compare  [4] Notify  [5] Save
-  const totalPhases = initMode ? 3 : 5;
+  // Init:       [1] PC Queue  [2] MSRP  [3] Scrape  [4] Baseline
+  // Normal:     [1] PC Queue  [2] MSRP  [3] Scrape  [4] Compare  [5] Notify  [6] Save
+  const totalPhases = initMode ? 4 : 6;
   let   phase       = 0;
 
-  // [1] MSRP database
+  // [1] Pokemon Center queue check — always first; fires critical alert if live
+  await checkPokemonCenterQueue(++phase, totalPhases, isDryRun);
+
+  // [2] MSRP database
   await refreshMsrp(++phase, totalPhases);
 
-  // [2] Scrape all enabled retailers in parallel
+  // [3] Scrape all enabled retailers in parallel
   const scraperResults = await scrapeRetailers(++phase, totalPhases);
 
   if (initMode) {
-    // [3] Baseline — mark all current products as "already seen"
+    // [4] Baseline — mark all current products as "already seen"
     await runInit(scraperResults, ++phase, totalPhases);
     printSummary({ runStart, isDryRun, initMode: true, totalSeen: 0, allNew: [], allRestocked: [] });
     return { initMode: true, newProducts: [], restockedProducts: [] };
   }
 
-  // [3] Compare
+  // [4] Compare
   const { allNew, allRestocked, totalSeen } = compareRetailers(scraperResults, state, ++phase, totalPhases);
   const toNotify = [...allNew, ...allRestocked];
   logFlaggedProducts(allNew, allRestocked);
 
-  // [4] Notify
+  // [5] Notify
   await sendNotifications(toNotify, ++phase, totalPhases, isDryRun);
 
-  // [5] Save
+  // [6] Save
   persistState(state, ++phase, totalPhases, isDryRun);
 
   printSummary({ runStart, isDryRun, initMode: false, totalSeen, allNew, allRestocked });

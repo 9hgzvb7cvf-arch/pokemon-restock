@@ -80,6 +80,20 @@ module.exports = {
       color:   0x1d6b3d,
       keywords,
     },
+    pokemoncenter: {
+      enabled:         process.env.PC_ENABLED !== 'false',
+      name:            'Pokemon Center',
+      color:           0xff0000,
+      // Session cookie copied from a real browser (required for product scraping;
+      // queue detection works without it). Set PC_COOKIE env var.
+      cookie:          process.env.PC_COOKIE || '',
+      // Comma-separated product URLs to watch for queue redirects.
+      watchUrls:       (process.env.PC_WATCH_URLS || '').split(',').map(u => u.trim()).filter(Boolean),
+      // Queue-it customer IDs to probe (the subdomain before .queue-it.net).
+      queueitIds:      (process.env.PC_QUEUEIT_IDS || 'pokemoncenter,pokemon,tpci').split(',').map(s => s.trim()).filter(Boolean),
+      // When true, Discord queue alert includes @here mention.
+      mentionEveryone: process.env.PC_QUEUE_MENTION_EVERYONE === 'true',
+    },
   },
 
   filterKeywords,
