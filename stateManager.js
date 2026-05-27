@@ -21,7 +21,6 @@
  *
  *   Both categories are filtered through:
  *     1. config.filterKeywords  (product name must match at least one keyword)
- *     2. MSRP price gate        (price must be ≤ MSRP_MAX_RATIO × MSRP; passes if no MSRP found)
  *
  * Public API:
  *   loadState()                              — read products.json → state object
@@ -45,10 +44,6 @@ const msrpChecker = require('./msrpChecker');  // kept as module ref so tests ca
 const STATE_FILE   = path.resolve(config.dataFile);
 const STATE_DIR    = path.dirname(STATE_FILE);
 const STATE_VERSION = 2;
-
-// Products priced above this multiple of MSRP are excluded from notifications.
-// 1.20 = up to 20% above MSRP is acceptable (tax, minor markup, rounding).
-const MSRP_MAX_RATIO = 1.20;
 
 // Stock statuses from which a transition to 'in_stock' counts as a restock.
 const RESTOCK_FROM_STATUSES = new Set(['out_of_stock', 'pre_order']);
@@ -130,13 +125,8 @@ function migrateV1(v1) {
  * result from the MSRP database (or null). The caller attaches `msrp` to the
  * notification payload; nothing is mutated here.
  *
- * Passes automatically (notify: true) when:
- *   - Product has no numeric price — can't evaluate
- *   - No MSRP match found in the database — can't evaluate, be permissive
- *
  * Blocked (notify: false) when:
  *   - Name doesn't match any config.filterKeywords
- *   - priceNumeric > MSRP × MSRP_MAX_RATIO (priced too far above MSRP)
  */
 function evaluateForNotification(product) {
   // ── keyword filter ────────────────────────────────────────────────────────
@@ -147,28 +137,8 @@ function evaluateForNotification(product) {
     }
   }
 
-  // ── MSRP price gate ───────────────────────────────────────────────────────
-  if (product.priceNumeric == null) {
-    return { notify: true, msrp: null };  // no price to evaluate
-  }
-
   const msrpData = msrpChecker.findMsrp(product.name);
-
-  if (!msrpData) {
-    return { notify: true, msrp: null };  // no MSRP match → allow
-  }
-
-  const ceiling = msrpData.msrp * MSRP_MAX_RATIO;
-  const passes  = product.priceNumeric <= ceiling;
-
-  if (!passes) {
-    console.log(
-      `[StateManager] Price gate: ${product.name} @ ${product.price} ` +
-      `exceeds ${Math.round(MSRP_MAX_RATIO * 100)}% of MSRP ${msrpData.msrpFormatted} — skipping`,
-    );
-  }
-
-  return { notify: passes, msrp: msrpData };
+  return { notify: true, msrp: msrpData ?? null };
 }
 
 // ── Core comparison ───────────────────────────────────────────────────────────
