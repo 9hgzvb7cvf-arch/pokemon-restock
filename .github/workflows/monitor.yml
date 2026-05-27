@@ -29,6 +29,7 @@ jobs:
     env:
       # Notification routing
       NOTIFY_CHANNELS:     ${{ vars.NOTIFY_CHANNELS || 'discord' }}
+      DISCORD_MENTION:     ${{ vars.DISCORD_MENTION || '<@519659187182108698>' }}
 
       # Discord
       DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}

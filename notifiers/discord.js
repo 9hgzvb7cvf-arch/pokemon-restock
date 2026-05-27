@@ -204,9 +204,10 @@ async function sendDiscordNotification(products) {
       const batch  = batches[i];
       const embeds = batch.map(p => buildEmbed(p, retailer));
 
+      const mention = config.discord.mention ? `${config.discord.mention} ` : '';
       const payload = {
         username: 'Pokemon TCG Monitor',
-        content:  i === 0 ? headline : `_(continued — page ${i + 1}/${batches.length})_`,
+        content:  i === 0 ? `${mention}${headline}` : `_(continued — page ${i + 1}/${batches.length})_`,
         embeds,
       };
 
@@ -273,10 +274,13 @@ async function sendQueueAlert(queueEvent) {
   };
 
   const mentionEveryone = config.retailers?.pokemoncenter?.mentionEveryone ?? false;
+  const userMention = config.discord.mention ? `${config.discord.mention} ` : '';
 
   const payload = {
     username: 'Pokemon TCG Monitor',
-    content:  mentionEveryone ? '@here 🚨 **POKEMON CENTER QUEUE IS LIVE!**' : '🚨 **POKEMON CENTER QUEUE IS LIVE!**',
+    content:  mentionEveryone
+      ? `${userMention}@here 🚨 **POKEMON CENTER QUEUE IS LIVE!**`
+      : `${userMention}🚨 **POKEMON CENTER QUEUE IS LIVE!**`,
     embeds:   [embed],
   };
 
