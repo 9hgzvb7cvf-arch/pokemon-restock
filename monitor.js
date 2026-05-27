@@ -34,6 +34,7 @@ const amazonScraper   = require('./scrapers/amazon');
 const gamestopScraper = require('./scrapers/gamestop');
 const bnScraper       = require('./scrapers/barnesandnoble');
 const pcScraper       = require('./scrapers/pokemoncenter');
+const redditMonitor   = require('./monitors/reddit');
 const notifierMod     = require('./notifier');
 const msrpMod         = require('./msrpChecker');
 const stateMod        = require('./stateManager');
@@ -218,6 +219,22 @@ async function runInit(scraperResults, phaseNum, totalPhases) {
   log.info(`${total} total products saved as baseline. Next run will detect changes.`);
 }
 
+// ── Reddit community alerts ───────────────────────────────────────────────────
+
+async function scrapeRedditAlerts(phaseNum, totalPhases) {
+  if (process.env.REDDIT_ENABLED === 'false') return [];
+  try {
+    const posts = await redditMonitor.scrapeReddit();
+    if (posts.length) {
+      log.ok(`Reddit     ${posts.length} community alert(s)`);
+    }
+    return posts;
+  } catch (err) {
+    log.warn(`Reddit failed — ${err.message}`);
+    return [];
+  }
+}
+
 // ── Phase 3b: Comparison (subsequent runs) ────────────────────────────────────
 
 function compareRetailers(scraperResults, state, phaseNum, totalPhases) {
@@ -359,8 +376,8 @@ async function run({ isDryRun = false, forceInit = false } = {}) {
   log.divider();
 
   // ── Phase counts depend on mode ───────────────────────────────────────────
-  // Init:       [1] PC Queue  [2] MSRP  [3] Scrape  [4] Baseline
-  // Normal:     [1] PC Queue  [2] MSRP  [3] Scrape  [4] Compare  [5] Notify  [6] Save
+  // Init:       [1] PC Queue  [2] MSRP  [3] Scrape + Reddit  [4] Baseline
+  // Normal:     [1] PC Queue  [2] MSRP  [3] Scrape + Reddit  [4] Compare  [5] Notify  [6] Save
   const totalPhases = initMode ? 4 : 6;
   let   phase       = 0;
 
@@ -370,8 +387,11 @@ async function run({ isDryRun = false, forceInit = false } = {}) {
   // [2] MSRP database
   await refreshMsrp(++phase, totalPhases);
 
-  // [3] Scrape all enabled retailers in parallel
-  const scraperResults = await scrapeRetailers(++phase, totalPhases);
+  // [3] Scrape all enabled retailers + Reddit in parallel
+  const [scraperResults, redditAlerts] = await Promise.all([
+    scrapeRetailers(++phase, totalPhases),
+    scrapeRedditAlerts(phase, totalPhases),  // runs alongside, logs its own output
+  ]);
 
   if (initMode) {
     // [4] Baseline — mark all current products as "already seen"
@@ -380,10 +400,20 @@ async function run({ isDryRun = false, forceInit = false } = {}) {
     return { initMode: true, newProducts: [], restockedProducts: [] };
   }
 
-  // [4] Compare
+  // [4] Compare retailer results against stored state
   const { allNew, allRestocked, totalSeen } = compareRetailers(scraperResults, state, ++phase, totalPhases);
-  const toNotify = [...allNew, ...allRestocked];
+
+  // Community alerts (Reddit) bypass state comparison — seen-ID file handles dedup
+  const toNotify = [...allNew, ...allRestocked, ...redditAlerts];
   logFlaggedProducts(allNew, allRestocked);
+
+  if (redditAlerts.length) {
+    log.blank();
+    for (const p of redditAlerts) {
+      const subs = p.subreddit ? ` [r/${p.subreddit}]` : '';
+      log.item('REDDIT', `${p.name}${subs}  ${p.url ?? ''}`);
+    }
+  }
 
   // [5] Notify
   await sendNotifications(toNotify, ++phase, totalPhases, isDryRun);

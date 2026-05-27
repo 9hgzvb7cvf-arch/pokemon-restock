@@ -64,6 +64,10 @@ jobs:
       PC_QUEUEIT_IDS:      ${{ vars.PC_QUEUEIT_IDS }}
       PC_QUEUE_MENTION_EVERYONE: ${{ vars.PC_QUEUE_MENTION_EVERYONE || 'false' }}
 
+      # Community monitors
+      REDDIT_ENABLED:     ${{ vars.REDDIT_ENABLED     || 'true' }}
+      REDDIT_SUBREDDITS:  ${{ vars.REDDIT_SUBREDDITS  || 'PokemonTCG,PokeInvesting' }}
+
       # Search / filter
       SEARCH_KEYWORDS: ${{ vars.SEARCH_KEYWORDS }}
       FILTER_KEYWORDS: ${{ vars.FILTER_KEYWORDS }}

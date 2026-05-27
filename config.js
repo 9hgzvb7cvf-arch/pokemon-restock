@@ -97,6 +97,18 @@ module.exports = {
     },
   },
 
+  reddit: {
+    enabled:    process.env.REDDIT_ENABLED !== 'false',
+    subreddits: (process.env.REDDIT_SUBREDDITS || 'PokemonTCG,PokeInvesting')
+      .split(',').map(s => s.trim()).filter(Boolean),
+  },
+
+  discordListener: {
+    enabled: process.env.LISTENER_ENABLED === 'true',
+    port:    parseInt(process.env.LISTENER_PORT || '3001', 10),
+    secret:  process.env.LISTENER_SECRET || '',
+  },
+
   filterKeywords,
   maxPages: parseInt(process.env.MAX_PAGES || '3', 10),
   dataFile: './data/products.json',

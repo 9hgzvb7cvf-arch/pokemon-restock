@@ -31,6 +31,8 @@ const RETAILER_COLORS = {
   amazon:         0xff9900,
   gamestop:       0xe31837,
   barnesandnoble: 0x1d6b3d,
+  reddit:         0xff4500,   // Reddit orange
+  community:      0x9b59b6,   // purple for webhook listener alerts
 };
 
 const RETAILER_ICONS = {
@@ -40,6 +42,7 @@ const RETAILER_ICONS = {
   amazon:         'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Amazon_logo.svg/320px-Amazon_logo.svg.png',
   gamestop:       'https://www.gamestop.com/on/demandware.static/Sites-gamestop-us-Site/-/default/dwbf2ed3c5/images/gamestop-logo.png',
   barnesandnoble: 'https://www.barnesandnoble.com/favicon.ico',
+  reddit:         'https://www.redditstatic.com/desktop2x/img/favicon/favicon-96x96.png',
 };
 
 const RESTOCK_COLOR = 0x57f287;  // Discord "green" — signals available-again
@@ -121,9 +124,46 @@ function buildMsrpField(product) {
 }
 
 function buildEmbed(product, retailer) {
-  const isRestock  = product.changeType === 'restock';
+  const isCommunity = product.changeType === 'community_alert';
+  const isRestock   = product.changeType === 'restock';
+  const color       = isRestock   ? RESTOCK_COLOR
+                    : isCommunity ? (RETAILER_COLORS[retailer] ?? 0x9b59b6)
+                    :               (RETAILER_COLORS[retailer] ?? 0x7289da);
+
+  // Community alerts (Reddit / webhook listener) get a simplified embed
+  if (isCommunity) {
+    const fields = [];
+
+    if (product.retailers?.length) {
+      fields.push({ name: 'Retailer(s)', value: product.retailers.join(', '), inline: true });
+    } else if (product.retailerHint) {
+      fields.push({ name: 'Retailer', value: product.retailerHint, inline: true });
+    }
+
+    if (product.price && product.price !== 'N/A') {
+      fields.push({ name: 'Price', value: product.price, inline: true });
+    }
+
+    if (product.subreddit) {
+      fields.push({ name: 'Source', value: `r/${product.subreddit}`, inline: true });
+    }
+
+    if (product.redditUrl && product.url !== product.redditUrl) {
+      fields.push({ name: 'Reddit Post', value: product.redditUrl, inline: false });
+    }
+
+    return {
+      title:     truncate(`👥 ${product.name}`, 256),
+      url:       product.url ?? undefined,
+      color,
+      fields,
+      thumbnail: RETAILER_ICONS[retailer] ? { url: RETAILER_ICONS[retailer] } : undefined,
+      timestamp: new Date().toISOString(),
+      footer:    { text: 'Pokemon TCG Monitor · Community Alert' },
+    };
+  }
+
   const retailerName = config.retailers[retailer]?.name ?? retailer;
-  const color      = isRestock ? RESTOCK_COLOR : (RETAILER_COLORS[retailer] ?? 0x7289da);
 
   const fields = [
     { name: 'Price',    value: product.price ?? 'N/A',          inline: true  },
