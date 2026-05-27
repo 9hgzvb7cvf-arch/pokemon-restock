@@ -40,6 +40,8 @@ const SEARCH_KEYWORDS = [
   'pokemon trading card game',
   'pokemon booster pack',
   'pokemon elite trainer box',
+  'pokemon tin',
+  'pokemon collection box',
 ];
 
 const DELAY_MS   = 2000;  // polite delay between pages; Walmart rate-limits aggressively
@@ -212,24 +214,38 @@ function buildPrice(item) {
   };
 }
 
+function getPickupStatus(item) {
+  // pickupMethod: 'PICKUP' when the item supports store pickup
+  const fulfillment = item.fulfillmentBadges ?? item.fulfillmentType ?? '';
+  const pickupAvail = item.pickupAndDeliveryStoreInfo?.pickupStores?.[0]?.available;
+  if (pickupAvail === true)  return 'in_stock';
+  if (pickupAvail === false) return 'out_of_stock';
+  // Simpler flag
+  const badge = (Array.isArray(item.fulfillmentBadges) ? item.fulfillmentBadges : [])
+    .map(b => (b ?? '').toLowerCase());
+  if (badge.includes('pickup_today') || badge.includes('free_pickup_today')) return 'in_stock';
+  return null;
+}
+
 function normalizeItem(item) {
-  const stockStatus = getStockStatus(item);
+  const stockStatus  = getStockStatus(item);
   const { price, priceNumeric, regularPrice } = buildPrice(item);
-  const preorder = item.preOrder ?? {};
+  const preorder     = item.preOrder ?? {};
 
   return {
-    id:           `walmart-${item.usItemId}`,
-    retailer:     'walmart',
-    usItemId:     item.usItemId,
-    name:         item.name ?? '',
-    brand:        item.brand ?? null,
+    id:             `walmart-${item.usItemId}`,
+    retailer:       'walmart',
+    usItemId:       item.usItemId,
+    name:           item.name ?? '',
+    brand:          item.brand ?? null,
     price,
     priceNumeric,
     regularPrice,
-    url:          buildUrl(item),
-    inStock:      stockStatus === 'in_stock',
-    stockStatus,  // 'in_stock' | 'out_of_stock' | 'pre_order'
-    releaseDate:  preorder.streetDate ?? preorder.releaseDate ?? null,
+    url:            buildUrl(item),
+    inStock:        stockStatus === 'in_stock',
+    stockStatus,    // 'in_stock' | 'out_of_stock' | 'pre_order'
+    pickupStatus:   getPickupStatus(item),  // 'in_stock' | 'out_of_stock' | null
+    releaseDate:    preorder.streetDate ?? preorder.releaseDate ?? null,
   };
 }
 

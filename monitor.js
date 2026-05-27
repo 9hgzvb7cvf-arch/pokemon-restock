@@ -30,6 +30,9 @@ const config = require('./config');
 const targetScraper  = require('./scrapers/target');
 const walmartScraper = require('./scrapers/walmart');
 const bestbuyScraper = require('./scrapers/bestbuy');
+const amazonScraper  = require('./scrapers/amazon');
+const gamestopScraper = require('./scrapers/gamestop');
+const bnScraper      = require('./scrapers/barnesandnoble');
 const notifierMod    = require('./notifier');
 const msrpMod        = require('./msrpChecker');
 const stateMod       = require('./stateManager');
@@ -70,9 +73,12 @@ function isFirstRun(state) {
 // fn is a thunk so it resolves through the module ref at call time, not import time.
 // This lets tests stub scraper functions without re-requiring monitor.
 const SCRAPERS = [
-  { key: 'target',  name: 'Target',   fn: () => targetScraper.scrapeTarget(),   cfg: () => config.retailers.target  },
-  { key: 'walmart', name: 'Walmart',  fn: () => walmartScraper.scrapeWalmart(), cfg: () => config.retailers.walmart },
-  { key: 'bestbuy', name: 'Best Buy', fn: () => bestbuyScraper.scrapeBestBuy(), cfg: () => config.retailers.bestbuy },
+  { key: 'target',          name: 'Target',          fn: () => targetScraper.scrapeTarget(),           cfg: () => config.retailers.target          },
+  { key: 'walmart',         name: 'Walmart',         fn: () => walmartScraper.scrapeWalmart(),         cfg: () => config.retailers.walmart         },
+  { key: 'bestbuy',         name: 'Best Buy',        fn: () => bestbuyScraper.scrapeBestBuy(),         cfg: () => config.retailers.bestbuy         },
+  { key: 'amazon',          name: 'Amazon',          fn: () => amazonScraper.scrapeAmazon(),           cfg: () => config.retailers.amazon          },
+  { key: 'gamestop',        name: 'GameStop',        fn: () => gamestopScraper.scrapeGameStop(),       cfg: () => config.retailers.gamestop        },
+  { key: 'barnesandnoble',  name: 'Barnes & Noble',  fn: () => bnScraper.scrapeBarnesAndNoble(),       cfg: () => config.retailers.barnesandnoble  },
 ];
 
 // ── Phase 1: MSRP refresh ─────────────────────────────────────────────────────

@@ -43,11 +43,20 @@ jobs:
       SMTP_USER:     ${{ secrets.SMTP_USER }}
       SMTP_PASS:     ${{ secrets.SMTP_PASS }}
 
-      # Retailers
+      # Retailers — existing
       BESTBUY_API_KEY:  ${{ secrets.BESTBUY_API_KEY }}
-      TARGET_ENABLED:   ${{ vars.TARGET_ENABLED  || 'true' }}
-      WALMART_ENABLED:  ${{ vars.WALMART_ENABLED || 'true' }}
-      BESTBUY_ENABLED:  ${{ vars.BESTBUY_ENABLED || 'true' }}
+      TARGET_ENABLED:   ${{ vars.TARGET_ENABLED   || 'true' }}
+      WALMART_ENABLED:  ${{ vars.WALMART_ENABLED  || 'true' }}
+      BESTBUY_ENABLED:  ${{ vars.BESTBUY_ENABLED  || 'true' }}
+
+      # Retailers — new
+      AMAZON_ENABLED:      ${{ vars.AMAZON_ENABLED      || 'true' }}
+      AMAZON_ACCESS_KEY:   ${{ secrets.AMAZON_ACCESS_KEY }}
+      AMAZON_SECRET_KEY:   ${{ secrets.AMAZON_SECRET_KEY }}
+      AMAZON_PARTNER_TAG:  ${{ secrets.AMAZON_PARTNER_TAG }}
+      AMAZON_FBA_ONLY:     ${{ vars.AMAZON_FBA_ONLY     || 'false' }}
+      GAMESTOP_ENABLED:    ${{ vars.GAMESTOP_ENABLED     || 'false' }}
+      BN_ENABLED:          ${{ vars.BN_ENABLED           || 'true' }}
 
       # Search / filter
       SEARCH_KEYWORDS: ${{ vars.SEARCH_KEYWORDS }}

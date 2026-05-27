@@ -54,6 +54,32 @@ module.exports = {
       apiKey: process.env.BESTBUY_API_KEY || '',
       keywords,
     },
+    amazon: {
+      enabled:    process.env.AMAZON_ENABLED !== 'false',
+      name:       'Amazon',
+      color:      0xff9900,
+      accessKey:  process.env.AMAZON_ACCESS_KEY  || '',
+      secretKey:  process.env.AMAZON_SECRET_KEY  || '',
+      partnerTag: process.env.AMAZON_PARTNER_TAG || '',
+      // true  → include 3rd-party FBA/Prime-eligible sellers
+      // false → only items sold directly by Amazon.com (default; safer for MSRP)
+      fbaOnly:    process.env.AMAZON_FBA_ONLY === 'true',
+    },
+    gamestop: {
+      // Disabled by default: GameStop uses Cloudflare Enterprise which blocks server-side
+      // HTTP requests (GitHub Actions, VPS, etc.). Enable only if you have a residential
+      // proxy configured or are running monitor.js locally from a home IP.
+      enabled: process.env.GAMESTOP_ENABLED === 'true',
+      name:    'GameStop',
+      color:   0xe31837,
+      keywords,
+    },
+    barnesandnoble: {
+      enabled: process.env.BN_ENABLED !== 'false',
+      name:    'Barnes & Noble',
+      color:   0x1d6b3d,
+      keywords,
+    },
   },
 
   filterKeywords,

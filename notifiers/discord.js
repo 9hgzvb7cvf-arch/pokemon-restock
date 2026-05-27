@@ -25,15 +25,21 @@ const MAX_RETRIES   = 3;
 const EMBEDS_PER_MSG = 10;  // Discord hard limit
 
 const RETAILER_COLORS = {
-  target:  0xcc0000,
-  walmart: 0x0071ce,
-  bestbuy: 0xffe000,
+  target:         0xcc0000,
+  walmart:        0x0071ce,
+  bestbuy:        0xffe000,
+  amazon:         0xff9900,
+  gamestop:       0xe31837,
+  barnesandnoble: 0x1d6b3d,
 };
 
 const RETAILER_ICONS = {
-  target:  'https://corporate.target.com/images/logo/Target_Bullseye_Logo.png',
-  walmart: 'https://i5.walmartimages.com/dfw/4ff9c6c9-d8b6/k2-_7a3.image.75x75.jpg',
-  bestbuy: 'https://pisces.bbystatic.com/image2/BestBuy_US/images/logos/BestBuy_Logo_2020.png',
+  target:         'https://corporate.target.com/images/logo/Target_Bullseye_Logo.png',
+  walmart:        'https://i5.walmartimages.com/dfw/4ff9c6c9-d8b6/k2-_7a3.image.75x75.jpg',
+  bestbuy:        'https://pisces.bbystatic.com/image2/BestBuy_US/images/logos/BestBuy_Logo_2020.png',
+  amazon:         'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Amazon_logo.svg/320px-Amazon_logo.svg.png',
+  gamestop:       'https://www.gamestop.com/on/demandware.static/Sites-gamestop-us-Site/-/default/dwbf2ed3c5/images/gamestop-logo.png',
+  barnesandnoble: 'https://www.barnesandnoble.com/favicon.ico',
 };
 
 const RESTOCK_COLOR = 0x57f287;  // Discord "green" — signals available-again

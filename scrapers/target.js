@@ -34,8 +34,9 @@ const COUNT         = 24;
 const DELAY_MS      = 1500;
 const MAX_RETRIES   = 3;
 
-// Search term that returns the most relevant TCG products (~800+ results)
-const SEARCH_KEYWORD = 'pokemon cards';
+// Search terms — first term is used for both passes; additional terms run OOS-only for discovery
+const SEARCH_KEYWORD  = 'pokemon cards';
+const EXTRA_KEYWORDS  = ['pokemon trading card game', 'pokemon booster'];
 
 // ── HTTP ──────────────────────────────────────────────────────────────────────
 
@@ -188,6 +189,19 @@ function buildUrl(raw) {
   return `https://www.target.com/p/-/A-${tcin}`;
 }
 
+/**
+ * Check whether the configured store has this item available for in-store pickup.
+ * The Redsky API returns store_options[] within fulfillment when store_id is passed.
+ */
+function getInStoreStatus(raw) {
+  const storeOptions = raw?.item?.fulfillment?.store_options ?? [];
+  const storeOpt = storeOptions.find(o => String(o.location_id) === STORE_ID) ?? storeOptions[0];
+  if (!storeOpt) return null;
+  const status = storeOpt?.availability?.availability_status ?? storeOpt?.order_pickup?.availability?.availability_status ?? '';
+  if (!status) return null;
+  return status === 'IN_STOCK' ? 'in_stock' : status === 'OUT_OF_STOCK' ? 'out_of_stock' : status.toLowerCase();
+}
+
 function normalizeProduct(raw, stockStatus) {
   const tcin     = raw?.tcin ?? raw?.item?.tcin;
   const name     = raw?.item?.product_description?.title ?? '';
@@ -196,18 +210,19 @@ function normalizeProduct(raw, stockStatus) {
   const brand    = raw?.item?.primary_brand?.name ?? null;
 
   return {
-    id:             `target-${tcin}`,
-    retailer:       'target',
+    id:               `target-${tcin}`,
+    retailer:         'target',
     tcin,
-    name:           name.replace(/&#(\d+);/g, (_, n) => String.fromCharCode(n)), // decode HTML entities
+    name:             name.replace(/&#(\d+);/g, (_, n) => String.fromCharCode(n)),
     brand,
-    price:          price != null ? `$${Number(price).toFixed(2)}` : 'N/A',
-    priceNumeric:   price ?? null,
-    regularPrice:   regPrice != null && regPrice !== price ? `$${Number(regPrice).toFixed(2)}` : null,
-    url:            buildUrl(raw),
-    inStock:        stockStatus === 'in_stock',
-    stockStatus,    // 'in_stock' | 'out_of_stock' | 'pre_order'
-    releaseDate:    null, // pre-order date not surfaced in search API; check PDP for details
+    price:            price != null ? `$${Number(price).toFixed(2)}` : 'N/A',
+    priceNumeric:     price ?? null,
+    regularPrice:     regPrice != null && regPrice !== price ? `$${Number(regPrice).toFixed(2)}` : null,
+    url:              buildUrl(raw),
+    inStock:          stockStatus === 'in_stock',
+    stockStatus,      // 'in_stock' | 'out_of_stock' | 'pre_order'
+    inStoreStatus:    getInStoreStatus(raw),  // null if not available from API; 'in_stock' | 'out_of_stock'
+    releaseDate:      null, // pre-order date not surfaced in search API; check PDP for details
   };
 }
 
@@ -250,13 +265,15 @@ async function scrapeTarget() {
     products.push(normalizeProduct(raw, stockStatus));
   }
 
-  const inStock    = products.filter(p => p.stockStatus === 'in_stock').length;
-  const outOfStock = products.filter(p => p.stockStatus === 'out_of_stock').length;
-  const preOrder   = products.filter(p => p.stockStatus === 'pre_order').length;
+  const inStock     = products.filter(p => p.stockStatus === 'in_stock').length;
+  const outOfStock  = products.filter(p => p.stockStatus === 'out_of_stock').length;
+  const preOrder    = products.filter(p => p.stockStatus === 'pre_order').length;
+  const inStoreAvail = products.filter(p => p.inStoreStatus === 'in_stock').length;
 
   console.log(
     `[Target] Done: ${products.length} Target-sold products ` +
-    `(${inStock} in-stock, ${outOfStock} OOS, ${preOrder} pre-order, ${thirdPartyCount} 3rd-party skipped)`,
+    `(${inStock} online in-stock, ${inStoreAvail} in-store, ${outOfStock} OOS, ` +
+    `${preOrder} pre-order, ${thirdPartyCount} 3rd-party skipped)`,
   );
 
   return products;
@@ -293,7 +310,7 @@ if (require.main === module) {
         console.log(`\n[${i + 1}] ${p.name}`);
         console.log(`    Brand:  ${p.brand ?? 'N/A'}`);
         console.log(`    Price:  ${p.price}${p.regularPrice ? ` (reg ${p.regularPrice})` : ''}`);
-        console.log(`    Status: ${status}`);
+        console.log(`    Status: ${status}${p.inStoreStatus === 'in_stock' ? ' (also in-store)' : ''}`);
         console.log(`    URL:    ${p.url}`);
       });
       console.log(`\n${'─'.repeat(70)}`);

@@ -317,14 +317,20 @@ if (require.main === module) {
 
   if (args.includes('--baseline')) {
     console.log('[StateManager] Baseline mode: scraping all enabled retailers…');
-    const { scrapeTarget }  = require('./scrapers/target');
-    const { scrapeWalmart } = require('./scrapers/walmart');
-    const { scrapeBestBuy } = require('./scrapers/bestbuy');
+    const { scrapeTarget }          = require('./scrapers/target');
+    const { scrapeWalmart }         = require('./scrapers/walmart');
+    const { scrapeBestBuy }         = require('./scrapers/bestbuy');
+    const { scrapeAmazon }          = require('./scrapers/amazon');
+    const { scrapeGameStop }        = require('./scrapers/gamestop');
+    const { scrapeBarnesAndNoble }  = require('./scrapers/barnesandnoble');
 
     const scrapers = [
-      { key: 'target',  fn: scrapeTarget,  enabled: config.retailers.target.enabled },
-      { key: 'walmart', fn: scrapeWalmart, enabled: config.retailers.walmart.enabled },
-      { key: 'bestbuy', fn: scrapeBestBuy, enabled: config.retailers.bestbuy.enabled },
+      { key: 'target',         fn: scrapeTarget,         enabled: config.retailers.target.enabled         },
+      { key: 'walmart',        fn: scrapeWalmart,        enabled: config.retailers.walmart.enabled        },
+      { key: 'bestbuy',        fn: scrapeBestBuy,        enabled: config.retailers.bestbuy.enabled        },
+      { key: 'amazon',         fn: scrapeAmazon,         enabled: config.retailers.amazon.enabled         },
+      { key: 'gamestop',       fn: scrapeGameStop,       enabled: config.retailers.gamestop.enabled       },
+      { key: 'barnesandnoble', fn: scrapeBarnesAndNoble, enabled: config.retailers.barnesandnoble.enabled },
     ];
 
     (async () => {
