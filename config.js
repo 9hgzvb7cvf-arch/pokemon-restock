@@ -16,8 +16,9 @@ module.exports = {
   },
 
   discord: {
-    webhookUrl: process.env.DISCORD_WEBHOOK_URL || '',
-    mention:    process.env.DISCORD_MENTION || '',
+    webhookUrl:          process.env.DISCORD_WEBHOOK_URL          || '',
+    communityWebhookUrl: process.env.DISCORD_COMMUNITY_WEBHOOK_URL || '',
+    mention:             process.env.DISCORD_MENTION              || '',
   },
 
   email: {

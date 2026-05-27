@@ -32,7 +32,8 @@ jobs:
       DISCORD_MENTION:     ${{ vars.DISCORD_MENTION || '<@519659187182108698>' }}
 
       # Discord
-      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+      DISCORD_WEBHOOK_URL:           ${{ secrets.DISCORD_WEBHOOK_URL }}
+      DISCORD_COMMUNITY_WEBHOOK_URL: ${{ secrets.DISCORD_COMMUNITY_WEBHOOK_URL }}
 
       # Email
       EMAIL_ENABLED: ${{ secrets.EMAIL_ENABLED || 'false' }}

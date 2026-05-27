@@ -210,13 +210,42 @@ function buildEmbed(product, retailer) {
  * @returns {Promise<{ sent: number, failed: number }>}
  */
 async function sendDiscordNotification(products) {
-  const webhookUrl = config.discord.webhookUrl;
+  const webhookUrl          = config.discord.webhookUrl;
+  const communityWebhookUrl = config.discord.communityWebhookUrl;
+
   if (!webhookUrl) {
     console.warn('[Discord] No DISCORD_WEBHOOK_URL set — skipping.');
     return { sent: 0, failed: 0 };
   }
   if (!products.length) return { sent: 0, failed: 0 };
 
+  // Split into retailer alerts (main channel) and community alerts (separate channel)
+  const COMMUNITY_RETAILERS = new Set(['reddit', 'community']);
+  const retailerProducts  = products.filter(p => !COMMUNITY_RETAILERS.has(p.retailer));
+  const communityProducts = products.filter(p =>  COMMUNITY_RETAILERS.has(p.retailer));
+
+  let sent = 0, failed = 0;
+
+  // Send community alerts to the community channel (or fall back to main if not configured)
+  if (communityProducts.length) {
+    const target = communityWebhookUrl || webhookUrl;
+    if (!communityWebhookUrl) {
+      console.log('[Discord] No DISCORD_COMMUNITY_WEBHOOK_URL set — sending community alerts to main channel.');
+    }
+    const r = await sendToWebhook(communityProducts, target, { isCommunity: true });
+    sent += r.sent; failed += r.failed;
+  }
+
+  // Send retailer alerts to the main channel
+  if (retailerProducts.length) {
+    const r = await sendToWebhook(retailerProducts, webhookUrl, { isCommunity: false });
+    sent += r.sent; failed += r.failed;
+  }
+
+  return { sent, failed };
+}
+
+async function sendToWebhook(products, webhookUrl, { isCommunity }) {
   // Group by retailer
   const byRetailer = new Map();
   for (const product of products) {
@@ -228,14 +257,18 @@ async function sendDiscordNotification(products) {
   let sent = 0, failed = 0;
 
   for (const [retailer, group] of byRetailer) {
-    const retailerName = config.retailers[retailer]?.name ?? retailer;
+    const retailerName = isCommunity
+      ? (retailer === 'reddit' ? 'Reddit' : 'Community')
+      : (config.retailers[retailer]?.name ?? retailer);
     const newCount     = group.filter(p => p.changeType !== 'restock').length;
     const restockCount = group.filter(p => p.changeType === 'restock').length;
 
     const parts = [];
     if (newCount)     parts.push(`🆕 **${newCount}** new`);
     if (restockCount) parts.push(`🔄 **${restockCount}** restocked`);
-    const headline = `🃏 ${parts.join(' + ')} Pokemon TCG product${group.length === 1 ? '' : 's'} at **${retailerName}**!`;
+    const headline = isCommunity
+      ? `👥 **${group.length}** community restock signal${group.length === 1 ? '' : 's'} from **${retailerName}**`
+      : `🃏 ${parts.join(' + ')} Pokemon TCG product${group.length === 1 ? '' : 's'} at **${retailerName}**!`;
 
     // Batch into groups of 10 (Discord embed limit per message)
     const batches = chunk(group, EMBEDS_PER_MSG);
@@ -253,7 +286,8 @@ async function sendDiscordNotification(products) {
 
       const ok = await postWebhook(webhookUrl, payload);
       if (ok) {
-        console.log(`[Discord] Sent ${batch.length} embed(s) for ${retailerName} (batch ${i + 1}/${batches.length})`);
+        const dest = isCommunity ? 'community channel' : 'main channel';
+        console.log(`[Discord] Sent ${batch.length} embed(s) for ${retailerName} → ${dest} (batch ${i + 1}/${batches.length})`);
         sent += batch.length;
       } else {
         failed += batch.length;
