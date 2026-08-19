@@ -34,6 +34,7 @@ const amazonScraper   = require('./scrapers/amazon');
 const gamestopScraper = require('./scrapers/gamestop');
 const bnScraper       = require('./scrapers/barnesandnoble');
 const pcScraper       = require('./scrapers/pokemoncenter');
+const costcoScraper = require('./scrapers/costco');
 const redditMonitor   = require('./monitors/reddit');
 const notifierMod     = require('./notifier');
 const msrpMod         = require('./msrpChecker');
@@ -81,8 +82,8 @@ const SCRAPERS = [
   { key: 'amazon',          name: 'Amazon',          fn: () => amazonScraper.scrapeAmazon(),           cfg: () => config.retailers.amazon          },
   { key: 'gamestop',        name: 'GameStop',        fn: () => gamestopScraper.scrapeGameStop(),       cfg: () => config.retailers.gamestop        },
   { key: 'barnesandnoble',  name: 'Barnes & Noble',  fn: () => bnScraper.scrapeBarnesAndNoble(),       cfg: () => config.retailers.barnesandnoble  },
-];
-
+  { key: 'costco', name: 'Costco', fn: () => costcoScraper.scrapeCostco() },
+  ];
 // ── Phase 0: Pokemon Center queue check ──────────────────────────────────────
 
 /**
