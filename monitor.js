@@ -83,6 +83,7 @@ const SCRAPERS = [
   { key: 'gamestop',        name: 'GameStop',        fn: () => gamestopScraper.scrapeGameStop(),       cfg: () => config.retailers.gamestop        },
   { key: 'barnesandnoble',  name: 'Barnes & Noble',  fn: () => bnScraper.scrapeBarnesAndNoble(),       cfg: () => config.retailers.barnesandnoble  },
   { key: 'costco', name: 'Costco', fn: () => costcoScraper.scrapeCostco(), cfg: () => config.retailers.costco },
+];
 // ── Phase 0: Pokemon Center queue check ──────────────────────────────────────
 
 /**
