@@ -229,13 +229,13 @@ async function fetchHtmlPage(keyword, page) {
       const res = await axios.get(url, {
         params:     { st: keyword, cp: page },
         headers:    { ...BASE_HEADERS, Referer: `${HTML_BASE}/` },
-        timeout:    30000,
+        timeout:    10000,
         decompress: true,
       });
       return res.data;
     },
     {
-      maxAttempts: MAX_RETRIES,
+      maxAttempts: 2,
       baseDelayMs: 2000,
       isRetryable(err) {
         const status = err.response?.status;
