@@ -96,7 +96,12 @@ module.exports = {
       // When true, Discord queue alert includes @here mention.
       mentionEveryone: process.env.PC_QUEUE_MENTION_EVERYONE === 'true',
     },
-  },
+costco: {
+  enabled: process.env.COSTCO_ENABLED !== 'false',
+  name: 'Costco',
+  color: 0xe31837,
+  keywords,
+},  },
 
   reddit: {
     enabled:    process.env.REDDIT_ENABLED !== 'false',
