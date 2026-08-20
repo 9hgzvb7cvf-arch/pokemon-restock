@@ -86,44 +86,57 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
-      - name: Install dependencies
-        run: npm ci --prefer-offline
+       - name: Install dependencies
+      run: npm ci --prefer-offline
 
-      - name: Run monitor
-        id: monitor
+           - name: Test Discord webhook
         run: |
-          FLAGS="--once"
-          if [[ "${{ github.event.inputs.init }}" == "true" ]]; then
-            FLAGS="$FLAGS --init"
-          fi
-          if [[ "${{ github.event.inputs.dry_run }}" == "true" ]]; then
-            FLAGS="$FLAGS --test"
-          fi
-          node monitor.js $FLAGS
-
-      - name: Commit updated data files
-        if: ${{ github.event.inputs.dry_run != 'true' }}
-        run: |
-          git config user.name  "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          # Stage both state files if they exist and have changes
-          git add data/products.json data/msrp-database.json 2>/dev/null || true
-
-          if git diff --cached --quiet; then
-            echo "No data changes to commit."
-            exit 0
+          if [ -z "$DISCORD_WEBHOOK_URL" ]; then
+            echo "DISCORD_WEBHOOK_URL is empty"
+            exit 1
           fi
 
-          git commit -m "chore: update monitor data [skip ci]"
+          curl -sS -f \
+            -H "Content-Type: application/json" \
+            -d '{"content":"✅ Pokemon Monitor Test - GitHub Actions to Discord is working!"}' \
+            "$DISCORD_WEBHOOK_URL"
 
-          # Pull-rebase + retry push to survive concurrent runs
-          for attempt in 1 2 3; do
-            git pull --rebase origin "${{ github.ref_name }}" && \
-            git push origin HEAD:"${{ github.ref_name }}" && break
-            echo "Push attempt $attempt failed — retrying in 10s…"
-            sleep 10
-          done
+        - name: Run monitor
+          id: monitor
+          run: |
+            FLAGS="--once"
+            if [[ "${{ github.event.inputs.init }}" == "true" ]]; then
+              FLAGS="$FLAGS --init"
+            fi
+            if [[ "${{ github.event.inputs.dry_run }}" == "true" ]]; then
+              FLAGS="$FLAGS --test"
+            fi
+            node monitor.js $FLAGS
+
+
+        - name: Commit updated data files
+          if: ${{ github.event.inputs.dry_run != 'true' }}
+          run: |
+            git config user.name  "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+  
+            # Stage both state files if they exist and have changes
+            git add data/products.json data/msrp-database.json 2>/dev/null || true
+  
+            if git diff --cached --quiet; then
+              echo "No data changes to commit."
+              exit 0
+            fi
+  
+            git commit -m "chore: update monitor data [skip ci]"
+  
+            # Pull-rebase + retry push to survive concurrent runs
+            for attempt in 1 2 3; do
+              git pull --rebase origin "${{ github.ref_name }}" && \
+              git push origin HEAD:"${{ github.ref_name }}" && break
+              echo "Push attempt $attempt failed — retrying in 10s…"
+              sleep 10
+            done
 
       - name: Write job summary
         if: always()
