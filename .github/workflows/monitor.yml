@@ -91,17 +91,7 @@ jobs:
       - name: Install dependencies
         run: npm ci --prefer-offline
 
-      - name: Test Discord webhook
-        run: |
-          if [ -z "$DISCORD_WEBHOOK_URL" ]; then
-            echo "DISCORD_WEBHOOK_URL is empty"
-            exit 1
-          fi
-
-          curl -sS -f \
-            -H "Content-Type: application/json" \
-            -d '{"content":"✅ Pokemon Monitor Test - GitHub Actions to Discord is working!"}' \
-            "$DISCORD_WEBHOOK_URL"
+      
 
       - name: Run monitor
         id: monitor
